@@ -74,3 +74,16 @@ async def search_all(indexers: list[dict], q: str):
             errors.append(err)
     results.sort(key=lambda r: r["seeders"], reverse=True)
     return results, errors
+
+
+async def test_indexer(indexer: dict) -> str:
+    """Ask the feed for its capabilities (t=caps). Read-only; no search is run."""
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        resp = await client.get(indexer["url"], params={"t": "caps"})
+    resp.raise_for_status()
+    root = ET.fromstring(resp.content)
+    if root.tag != "caps":
+        raise RuntimeError("URL responded, but it is not a Torznab feed")
+    server = root.find("server")
+    title = server.get("title", "indexer") if server is not None else "indexer"
+    return f"OK: {title} responded"

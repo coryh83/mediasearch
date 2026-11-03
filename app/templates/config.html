@@ -2,22 +2,51 @@
 {% block content %}
 <h2>Config</h2>
 {% if saved %}<p class="msg">Saved.</p>{% endif %}
+{% if msg %}<p class="{{ 'msg' if msg_ok else 'err' }}">{{ msg }}</p>{% endif %}
 
 <form method="post" action="/config">
+  <!-- Hidden default button so pressing Enter saves, not runs the first Test button. -->
+  <button type="submit" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px">Save</button>
+
   <h3>Indexers</h3>
-  <p>Paste each Jackett indexer's Torznab feed URL (Jackett: indexer, "Copy Torznab Feed"). Leave blank rows empty.</p>
+  <p>Paste each Jackett indexer's Torznab feed URL (Jackett: indexer, "Copy Torznab Feed"). Blank rows are ignored when you save.</p>
+  <div id="indexer-rows">
   {% for row in rows %}
   <div class="row">
     <input type="text" name="names" placeholder="Name" value="{{ row.name }}" size="20">
     <input type="url" name="urls" placeholder="http://jackett:9117/api/v2.0/indexers/NAME/results/torznab/?apikey=KEY" value="{{ row.url }}" size="80">
+    <button type="submit" formaction="/config/test" name="test_row" value="{{ loop.index0 }}">Test</button>
   </div>
   {% endfor %}
+  </div>
+  <p><button type="button" onclick="addIndexerRow()">+ Add indexer</button></p>
+
+  <template id="indexer-row-template">
+    <div class="row">
+      <input type="text" name="names" placeholder="Name" size="20">
+      <input type="url" name="urls" placeholder="http://jackett:9117/api/v2.0/indexers/NAME/results/torznab/?apikey=KEY" size="80">
+      <button type="submit" formaction="/config/test" name="test_row" value="">Test</button>
+    </div>
+  </template>
 
   <h3>Download client: Transmission</h3>
   <div class="row"><label>URL <input type="url" name="transmission_url" value="{{ cfg.transmission.url }}" size="50"></label></div>
   <div class="row"><label>Username <input type="text" name="transmission_username" value="{{ cfg.transmission.username }}"></label></div>
   <div class="row"><label>Password <input type="password" name="transmission_password" value="" placeholder="{% if has_password %}saved — leave blank to keep{% endif %}"></label></div>
+  <div class="row"><button type="submit" formaction="/config/test" name="test_row" value="transmission">Test Transmission</button></div>
 
   <p><button type="submit">Save</button></p>
 </form>
+
+<script>
+function addIndexerRow() {
+  const container = document.getElementById('indexer-rows');
+  const fragment = document.getElementById('indexer-row-template').content.cloneNode(true);
+  const row = fragment.querySelector('.row');
+  // Position of the new row, matching how the server reads the rows in order.
+  row.querySelector('button').value = String(container.children.length);
+  container.appendChild(fragment);
+  row.querySelector('input').focus();
+}
+</script>
 {% endblock %}
