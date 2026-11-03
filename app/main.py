@@ -175,25 +175,31 @@ async def reset_password(user: dict = Depends(require_admin), username: str = Fo
 # ---------- search and download ----------
 
 @app.get("/")
-async def index(request: Request, user: dict = Depends(require_user), q: str = "", msg: str = ""):
+async def index(request: Request, user: dict = Depends(require_user), q: str = "", msg: str = "",
+                kind: str = "all"):
+    if kind not in ("all", "audiobook", "ebook"):
+        kind = "all"
     results, errors = [], []
     if q.strip():
         results, errors = await search.search_all(config.load()["indexers"], q.strip())
+        if kind != "all":
+            results = [r for r in results if r["kind"] == kind]
     return _render(request, "index.html", user, **{
-        "q": q, "results": results, "errors": errors, "msg": msg,
+        "q": q, "kind": kind, "results": results, "errors": errors, "msg": msg,
         "finished": await _finished_downloads(user),
     })
 
 
 @app.post("/download")
-async def download(user: dict = Depends(require_user), q: str = Form(""), link: str = Form(...)):
+async def download(user: dict = Depends(require_user), q: str = Form(""), link: str = Form(...),
+                   kind: str = Form("all")):
     try:
         torrent_hash = await transmission.add_torrent(config.load()["transmission"], link)
         users.record_owner(torrent_hash, user["username"])
         msg = "Sent to Transmission"
     except Exception as exc:
         msg = f"Failed: {exc}"
-    return RedirectResponse(f"/?q={quote(q)}&msg={quote(msg)}", status_code=303)
+    return RedirectResponse(f"/?q={quote(q)}&kind={quote(kind)}&msg={quote(msg)}", status_code=303)
 
 
 # ---------- downloads ----------

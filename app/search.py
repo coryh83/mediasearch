@@ -32,6 +32,7 @@ def parse_torznab(indexer_name: str, xml_bytes: bytes) -> list[dict]:
 
         size = int(item.findtext("size") or 0)
         seeders = 0
+        cats = []
         for attr in item.iter(TORZNAB_ATTR):
             if attr.get("name") == "seeders":
                 try:
@@ -40,6 +41,11 @@ def parse_torznab(indexer_name: str, xml_bytes: bytes) -> list[dict]:
                     pass
             if attr.get("name") == "size" and not size:
                 size = int(attr.get("value") or 0)
+            if attr.get("name") == "category":
+                try:
+                    cats.append(int(attr.get("value") or 0))
+                except ValueError:
+                    pass
 
         results.append({
             "title": item.findtext("title") or "(untitled)",
@@ -48,8 +54,18 @@ def parse_torznab(indexer_name: str, xml_bytes: bytes) -> list[dict]:
             "size_human": human_size(size),
             "seeders": seeders,
             "indexer": indexer_name,
+            "kind": kind_from_categories(cats),
         })
     return results
+
+
+def kind_from_categories(cats: list[int]) -> str:
+    """Map Torznab category IDs to 'audiobook', 'ebook', or 'other'."""
+    if any(3000 <= c < 3100 for c in cats) and 3030 in cats:
+        return "audiobook"
+    if any(7000 <= c < 8000 for c in cats):
+        return "ebook"
+    return "other"
 
 
 async def _query_one(client: httpx.AsyncClient, indexer: dict, q: str):

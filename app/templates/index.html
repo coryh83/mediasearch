@@ -16,6 +16,9 @@
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
   .meta { color: var(--muted); font-size: .85rem; }
+  .filters { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1.25rem 0 0; }
+  .chip { padding: .4rem .9rem; border-radius: 999px; border: 1px solid var(--line); color: var(--text); text-decoration: none; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 </style>
 {% endblock %}
 {% block bodyclass %}search-page{% endblock %}
@@ -32,8 +35,16 @@
 {% if msg %}<p class="{{ 'err' if msg.startswith('Failed') else 'msg' }}">{{ msg }}</p>{% endif %}
 {% for e in errors %}<p class="err">{{ e }}</p>{% endfor %}
 
+{% if q %}
+<div class="filters">
+  {% for key, label in [("all", "All"), ("audiobook", "Audiobooks"), ("ebook", "Ebooks")] %}
+  <a href="/?q={{ q|urlencode }}&kind={{ key }}" class="chip{{ ' on' if kind == key }}">{{ label }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if results %}
-<p style="color:var(--muted); margin: 1.5rem 0 .75rem">{{ results|length }} results</p>
+<p style="color:var(--muted); margin: 1rem 0 .75rem">{{ results|length }} results</p>
 <div class="grid">
   {% for r in results %}
   <div class="card">
@@ -42,6 +53,7 @@
     <form method="post" action="/download">
       <input type="hidden" name="q" value="{{ q }}">
       <input type="hidden" name="link" value="{{ r.link }}">
+      <input type="hidden" name="kind" value="{{ kind }}">
       <button type="submit" style="width:100%">Download</button>
     </form>
   </div>
