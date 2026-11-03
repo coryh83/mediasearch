@@ -4,7 +4,7 @@
 <h2>Users</h2>
 {% if msg %}<p class="{{ 'msg' if msg_ok else 'err' }}">{{ msg }}</p>{% endif %}
 
-<table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem">
+<div style="overflow-x:auto; margin-bottom:1.5rem"><table style="width:100%; border-collapse:collapse">
   <tr style="text-align:left; color:var(--muted)"><th style="padding:.5rem">Username</th><th>Role</th><th>Reset password</th><th></th></tr>
   {% for a in accounts %}
   <tr style="border-top:1px solid var(--line)">
@@ -13,7 +13,7 @@
     <td>
       <form method="post" action="/users/password" class="row" style="margin:0">
         <input type="hidden" name="username" value="{{ a.username }}">
-        <input type="password" name="password" placeholder="new password" autocomplete="new-password" required>
+        <input type="password" name="password" placeholder="new password" autocomplete="new-password" required style="width:8.5rem">
         <button type="submit" class="ghost">Reset</button>
       </form>
     </td>
@@ -27,7 +27,7 @@
     </td>
   </tr>
   {% endfor %}
-</table>
+</table></div>
 
 <h3>Add a user</h3>
 <form method="post" action="/users/add" style="display:flex; flex-wrap:wrap; gap:.6rem; align-items:center">
