@@ -7,5 +7,8 @@ services:
       APP_USER: ${APP_USER:-admin}
       APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD in a .env file next to this compose file}
     volumes:
-      - ./data:/data
+      - mediasearch-data:/data  # Docker-managed volume: keeps settings across restarts and updates
     restart: unless-stopped
+
+volumes:
+  mediasearch-data:
