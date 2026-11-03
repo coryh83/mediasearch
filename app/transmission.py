@@ -44,7 +44,7 @@ async def _resolve(link: str):
 
 
 async def add_torrent(cfg: dict, link: str) -> str:
-    """Send a magnet link or a .torrent download link to Transmission."""
+    """Send a magnet link or a .torrent download link to Transmission. Returns the torrent's hash."""
     if link.startswith("magnet:"):
         args = {"filename": link}
     else:
@@ -57,7 +57,9 @@ async def add_torrent(cfg: dict, link: str) -> str:
     result = data.get("result")
     if result != "success":
         raise RuntimeError(f"Transmission replied: {result}")
-    return "Sent to Transmission"
+    added = data.get("arguments", {})
+    info = added.get("torrent-added") or added.get("torrent-duplicate") or {}
+    return info.get("hashString", "")
 
 
 async def test_connection(cfg: dict) -> str:
@@ -71,7 +73,7 @@ async def test_connection(cfg: dict) -> str:
 
 async def list_torrents(cfg: dict, timeout: float = 20) -> list[dict]:
     """Return Transmission's torrents with the fields the Downloads page needs."""
-    fields = ["id", "name", "percentDone", "rateDownload", "status", "totalSize"]
+    fields = ["id", "name", "hashString", "percentDone", "rateDownload", "status", "totalSize"]
     data = await _rpc(cfg, {"method": "torrent-get", "arguments": {"fields": fields}}, timeout=timeout)
     if data.get("result") != "success":
         raise RuntimeError(f"Transmission replied: {data.get('result')}")
@@ -80,6 +82,7 @@ async def list_torrents(cfg: dict, timeout: float = 20) -> list[dict]:
         pct = t.get("percentDone", 0)
         torrents.append({
             "id": t["id"],
+            "hash": t.get("hashString", ""),
             "name": t["name"],
             "pct": round(pct * 100, 1),
             "done": pct >= 1,

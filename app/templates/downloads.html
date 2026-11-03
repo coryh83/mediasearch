@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block head %}<meta http-equiv="refresh" content="15">{% endblock %}
+{% block bodyclass %}panel{% endblock %}
 {% block content %}
 <h2>Downloads</h2>
 {% if msg %}<p class="{{ 'msg' if msg_ok else 'err' }}">{{ msg }}</p>{% endif %}

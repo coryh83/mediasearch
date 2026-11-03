@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block bodyclass %}panel{% endblock %}
+{% block content %}
+<h2>Account</h2>
+<p style="color:var(--muted)">Signed in as <strong>{{ user.username }}</strong>{% if user.admin %} (admin){% endif %}.</p>
+{% if msg %}<p class="{{ 'msg' if msg_ok else 'err' }}">{{ msg }}</p>{% endif %}
+
+<h3>Change password</h3>
+<form method="post" action="/account/password" style="display:flex; flex-direction:column; gap:.6rem; max-width:360px">
+  <label class="row" style="flex-direction:column; align-items:stretch">Current password
+    <input type="password" name="current" autocomplete="current-password" required>
+  </label>
+  <label class="row" style="flex-direction:column; align-items:stretch">New password (8+ characters)
+    <input type="password" name="new" autocomplete="new-password" required>
+  </label>
+  <label class="row" style="flex-direction:column; align-items:stretch">Repeat new password
+    <input type="password" name="confirm" autocomplete="new-password" required>
+  </label>
+  <button type="submit">Change password</button>
+</form>
+{% endblock %}
