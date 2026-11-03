@@ -84,34 +84,56 @@ async def downloads_page(request: Request, msg: str = "", ok: str = "1"):
         torrents = await transmission.list_torrents(cfg["transmission"])
     except Exception as exc:
         error = f"Could not reach Transmission: {exc}"
+    for t in torrents:
+        t["guess"] = library.guess_author(t["name"])
+        t["split"] = library.preview_split(cfg["folders"]["complete"], t["name"]) if t["done"] else []
+    authors = sorted(
+        set(library.list_authors(cfg["folders"]["audiobooks"])) | set(library.list_authors(cfg["folders"]["ebooks"])),
+        key=str.lower,
+    )
     return templates.TemplateResponse(request, "downloads.html", {
         "torrents": torrents, "error": error, "msg": msg, "msg_ok": ok != "0",
-        "folders": cfg["folders"],
+        "folders": cfg["folders"], "authors": authors,
     })
 
 
 @app.post("/downloads/move")
-async def move_download(torrent_id: int = Form(..., alias="id"), target: str = Form(...)):
+async def move_download(
+    torrent_id: int = Form(..., alias="id"),
+    target: str = Form(...),
+    author: str = Form(""),
+):
     cfg = config.load()
     try:
         if target not in ("audiobooks", "ebooks"):
             raise ValueError("unknown destination")
+        if not author.strip():
+            raise ValueError("enter the author's name first")
         torrents = await transmission.list_torrents(cfg["transmission"])
         torrent = next((t for t in torrents if t["id"] == torrent_id), None)
         if torrent is None:
             raise RuntimeError("that torrent is no longer in Transmission")
         if not torrent["done"]:
             raise RuntimeError("that download has not finished yet")
-        dst = library.move_to_library(cfg["folders"]["complete"], torrent["name"], cfg["folders"][target])
+        if library.is_collection(cfg["folders"]["complete"], torrent["name"]):
+            moved = library.move_collection(
+                cfg["folders"]["complete"], torrent["name"], cfg["folders"][target], author,
+            )
+            where = f"{len(moved)} books in {author.strip()}"
+        else:
+            dst = library.move_to_library(
+                cfg["folders"]["complete"], torrent["name"], cfg["folders"][target], author,
+            )
+            where = str(dst)
     except Exception as exc:
         return RedirectResponse(f"/downloads?msg={quote('Failed: ' + str(exc))}&ok=0", status_code=303)
 
     # Files are moved. Now drop the torrent from Transmission so it stops seeding the old path.
     try:
         await transmission.remove_torrent(cfg["transmission"], torrent_id)
-        msg, ok = f"Moved to {dst}", "1"
+        msg, ok = f"Moved to {where}", "1"
     except Exception as exc:
-        msg, ok = f"Moved to {dst}, but could not remove it from Transmission: {exc}", "0"
+        msg, ok = f"Moved to {where}, but could not remove it from Transmission: {exc}", "0"
     return RedirectResponse(f"/downloads?msg={quote(msg)}&ok={ok}", status_code=303)
 
 

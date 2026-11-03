@@ -6,6 +6,10 @@
 {% if error %}<p class="err">{{ error }}</p>{% endif %}
 {% if not torrents and not error %}<p style="color:var(--muted)">Nothing downloading.</p>{% endif %}
 
+<datalist id="authors">
+  {% for a in authors %}<option value="{{ a }}">{% endfor %}
+</datalist>
+
 {% for t in torrents %}
 <div class="dl">
   <div class="dl-name">{{ t.name }}</div>
@@ -13,18 +17,26 @@
   <div class="meta">
     {% if t.done %}Finished{% else %}{{ t.status }} · {{ t.pct }}%{% if t.rate %} · {{ (t.rate / 1048576) | round(2) }} MB/s{% endif %}{% endif %}
   </div>
+  {% if t.done and t.split %}
+  <div class="meta">Collection: will be split into {{ t.split|length }} book{{ 's' if t.split|length != 1 }} under the author:
+    {% for b in t.split %}<div>· {{ b.title }}{% if b.files > 1 %} ({{ b.files }} files){% endif %}</div>{% endfor %}
+  </div>
+  {% endif %}
   {% if t.done %}
-  <div class="actions">
-    <form method="post" action="/downloads/move" class="inline">
-      <input type="hidden" name="id" value="{{ t.id }}">
+  <form method="post" action="/downloads/move" class="move">
+    <input type="hidden" name="id" value="{{ t.id }}">
+    <label class="meta">Author
+      <input type="text" name="author" list="authors" value="{{ t.guess }}" placeholder="Author name" required>
+    </label>
+    <div class="actions">
       <button type="submit" name="target" value="audiobooks">Move to Audiobooks</button>
       <button type="submit" name="target" value="ebooks">Move to Ebooks</button>
-    </form>
-    <form method="post" action="/downloads/remove" class="inline">
-      <input type="hidden" name="id" value="{{ t.id }}">
-      <button type="submit" class="ghost">Remove from list (keep files)</button>
-    </form>
-  </div>
+    </div>
+  </form>
+  <form method="post" action="/downloads/remove">
+    <input type="hidden" name="id" value="{{ t.id }}">
+    <button type="submit" class="ghost">Remove from list (keep files)</button>
+  </form>
   {% endif %}
 </div>
 {% endfor %}
@@ -35,7 +47,10 @@
   .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
   .bar > div { height: 100%; background: var(--accent); }
   .meta { color: var(--muted); font-size: .85rem; }
+  .move { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+  .move label { display: flex; flex-direction: column; gap: 4px; }
+  .move input { width: 100%; }
   .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-  form.inline { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; }
+  form { margin: 0; }
 </style>
 {% endblock %}
