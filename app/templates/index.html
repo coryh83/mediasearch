@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="get" action="/">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search for something" autofocus>
+  <button type="submit">Search</button>
+</form>
+
+{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
+{% for e in errors %}<p class="err">{{ e }}</p>{% endfor %}
+
+{% if results %}
+<table>
+  <tr><th>Title</th><th>Size</th><th>Seeds</th><th>Indexer</th><th></th></tr>
+  {% for r in results %}
+  <tr>
+    <td>{{ r.title }}</td>
+    <td class="num">{{ r.size_human }}</td>
+    <td class="num">{{ r.seeders }}</td>
+    <td>{{ r.indexer }}</td>
+    <td>
+      <form method="post" action="/download">
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="link" value="{{ r.link }}">
+        <button type="submit">Download</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% elif q %}
+<p>No results.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mediasearch</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  nav { margin-bottom: 1.5rem; }
+  nav a { margin-right: 1rem; }
+  input[type=text], input[type=search], input[type=password], input[type=url] { padding: .4rem; }
+  input[type=search] { width: 60%; font-size: 1.1rem; }
+  button { padding: .4rem .9rem; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #ddd; vertical-align: middle; }
+  td.num { white-space: nowrap; }
+  .msg { background: #eef6ee; padding: .5rem; }
+  .err { background: #fbeaea; padding: .5rem; }
+  .row { margin: .4rem 0; }
+  .row input { margin-right: .4rem; }
+</style>
+</head>
+<body>
+<nav><a href="/">Search</a><a href="/config">Config</a></nav>
+{% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,11 @@
+services:
+  mediasearch:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8000"   # only reachable from this machine; expose it through your tunnel
+    environment:
+      APP_USER: ${APP_USER:-admin}
+      APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD in a .env file next to this compose file}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
