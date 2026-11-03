@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f4f"/><stop offset="0.35" stop-color="#4c3b7e"/><stop offset="0.6" stop-color="#b0609a"/><stop offset="0.8" stop-color="#f08a7a"/><stop offset="1" stop-color="#ffc08f"/></linearGradient></defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f4f"/><stop offset="0.35" stop-color="#4c3b7e"/><stop offset="0.6" stop-color="#b0609a"/><stop offset="0.8" stop-color="#f08a7a"/><stop offset="1" stop-color="#ffc08f"/></linearGradient></defs>
 <rect width="1920" height="1080" fill="url(#sky)"/>
 <rect x="0" y="330" width="1100" height="22" rx="11.0" fill="#f6c3a0" opacity="0.22"/>
 <rect x="180" y="372" width="1100" height="14" rx="7.0" fill="#f6c3a0" opacity="0.16"/>
