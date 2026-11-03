@@ -1,3 +1,6 @@
+import base64
+from urllib.parse import urljoin
+
 import httpx
 
 
@@ -15,9 +18,36 @@ async def _rpc(cfg: dict, body: dict) -> dict:
         return resp.json()
 
 
+async def _resolve(link: str):
+    """Follow Jackett's download redirects ourselves. Returns a magnet string or .torrent bytes.
+
+    Transmission does not follow redirects, so we fetch the file here and hand it over.
+    """
+    async with httpx.AsyncClient(timeout=30) as client:
+        for _ in range(5):
+            resp = await client.get(link)
+            if resp.status_code in (301, 302, 303, 307, 308):
+                nxt = resp.headers.get("location", "")
+                if nxt.startswith("magnet:"):
+                    return nxt
+                link = urljoin(link, nxt)
+                continue
+            resp.raise_for_status()
+            return resp.content
+    raise RuntimeError("too many redirects")
+
+
 async def add_torrent(cfg: dict, link: str) -> str:
-    """Send a magnet or .torrent URL to Transmission."""
-    data = await _rpc(cfg, {"method": "torrent-add", "arguments": {"filename": link}})
+    """Send a magnet link or a .torrent download link to Transmission."""
+    if link.startswith("magnet:"):
+        args = {"filename": link}
+    else:
+        target = await _resolve(link)
+        if isinstance(target, str):
+            args = {"filename": target}
+        else:
+            args = {"metainfo": base64.b64encode(target).decode()}
+    data = await _rpc(cfg, {"method": "torrent-add", "arguments": args})
     result = data.get("result")
     if result != "success":
         raise RuntimeError(f"Transmission replied: {result}")
