@@ -73,9 +73,6 @@
     <a href="/users" class="{{ 'active' if request.url.path == '/users' else '' }}">Users</a>
     {% endif %}
     <a href="/account" class="{{ 'active' if request.url.path == '/account' else '' }}">{{ user.username }}</a>
-    <form method="post" action="/logout" style="margin:0">
-      <button type="submit" class="ghost">Log out</button>
-    </form>
   </nav>
   {% endif %}
   {% block content %}{% endblock %}
