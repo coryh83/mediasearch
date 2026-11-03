@@ -8,6 +8,10 @@ services:
       APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD in a .env file next to this compose file}
     volumes:
       - mediasearch-data:/data  # Docker-managed volume: keeps settings across restarts and updates
+      # Same paths on the host and in the container, so they match what Transmission uses.
+      - /media/downloads:/media/downloads   # Transmission's incomplete/ and complete/ folders
+      - /media/audiobooks:/media/audiobooks
+      - /media/ebooks:/media/ebooks
     restart: unless-stopped
 
 volumes:

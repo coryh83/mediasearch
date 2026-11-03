@@ -1,33 +1,53 @@
 {% extends "base.html" %}
+{% block head %}
+<style>
+  /* Landscape background for the search page. Scroll (not fixed) so it works on iPhone Safari.
+     cover fills any screen; the bottom anchor keeps the foreground and path in view on phones. */
+  .search-page {
+    background: #0c1120 url("/static/background.svg") 50% 100% / cover no-repeat;
+  }
+  @media (max-width: 600px) {
+    .search-page { background-position: 42% 100%; }
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .title {
+    font-weight: 600; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .meta { color: var(--muted); font-size: .85rem; }
+</style>
+{% endblock %}
+{% block bodyclass %}search-page{% endblock %}
 {% block content %}
-<form method="get" action="/">
-  <input type="search" name="q" value="{{ q }}" placeholder="Search for something" autofocus>
-  <button type="submit">Search</button>
+<form method="get" action="/" style="display:flex; gap:.6rem; max-width:720px; margin: 1.5rem auto 0">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search books and audiobooks" autofocus
+         style="flex:1; min-width:0; width:100%; border-radius:999px; padding:.8rem 1.2rem; font-size:1.05rem">
+  <button type="submit" style="border-radius:999px; padding:.8rem 1.6rem">Search</button>
 </form>
 
-{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
+{% if finished %}
+<p class="msg">{{ finished|length }} download{{ 's' if finished|length != 1 }} finished. <a href="/downloads" style="color:inherit; font-weight:600">Choose where to put {{ 'them' if finished|length != 1 else 'it' }}</a></p>
+{% endif %}
+{% if msg %}<p class="{{ 'err' if msg.startswith('Failed') else 'msg' }}">{{ msg }}</p>{% endif %}
 {% for e in errors %}<p class="err">{{ e }}</p>{% endfor %}
 
 {% if results %}
-<table>
-  <tr><th>Title</th><th>Size</th><th>Seeds</th><th>Indexer</th><th></th></tr>
+<p style="color:var(--muted); margin: 1.5rem 0 .75rem">{{ results|length }} results</p>
+<div class="grid">
   {% for r in results %}
-  <tr>
-    <td>{{ r.title }}</td>
-    <td class="num">{{ r.size_human }}</td>
-    <td class="num">{{ r.seeders }}</td>
-    <td>{{ r.indexer }}</td>
-    <td>
-      <form method="post" action="/download">
-        <input type="hidden" name="q" value="{{ q }}">
-        <input type="hidden" name="link" value="{{ r.link }}">
-        <button type="submit">Download</button>
-      </form>
-    </td>
-  </tr>
+  <div class="card">
+    <div class="title" title="{{ r.title }}">{{ r.title }}</div>
+    <div class="meta">{{ r.size_human }} · {{ r.seeders }} seeds · {{ r.indexer }}</div>
+    <form method="post" action="/download">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="link" value="{{ r.link }}">
+      <button type="submit" style="width:100%">Download</button>
+    </form>
+  </div>
   {% endfor %}
-</table>
+</div>
 {% elif q %}
-<p>No results.</p>
+<p style="color:var(--muted); text-align:center; margin-top:2rem">No results.</p>
 {% endif %}
 {% endblock %}

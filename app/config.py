@@ -10,15 +10,18 @@ def default_config() -> dict:
     return {
         "indexers": [],  # [{"name": "...", "url": "http://jackett:9117/api/v2.0/indexers/x/results/torznab/?apikey=..."}]
         "transmission": {"url": "http://transmission:9091", "username": "", "password": ""},
+        # Folder paths as seen from INSIDE this app's container (see the volume mounts in docker-compose.yml).
+        "folders": {"complete": "/media/downloads/complete", "audiobooks": "/media/audiobooks", "ebooks": "/media/ebooks"},
     }
 
 
 def load() -> dict:
+    cfg = default_config()
     if CONFIG_PATH.exists():
-        cfg = default_config()
-        cfg.update(json.loads(CONFIG_PATH.read_text()))
-        return cfg
-    return default_config()
+        saved = json.loads(CONFIG_PATH.read_text())
+        cfg.update(saved)
+        cfg["folders"] = {**default_config()["folders"], **saved.get("folders", {})}
+    return cfg
 
 
 def save(cfg: dict) -> None:

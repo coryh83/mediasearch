@@ -3,13 +3,19 @@ from urllib.parse import urljoin
 
 import httpx
 
+# Transmission status codes: 4 = downloading, 6 = seeding (finished), 0 = stopped.
+STATUS_NAMES = {
+    0: "Stopped", 1: "Queued to check", 2: "Checking", 3: "Queued",
+    4: "Downloading", 5: "Queued to seed", 6: "Seeding",
+}
 
-async def _rpc(cfg: dict, body: dict) -> dict:
+
+async def _rpc(cfg: dict, body: dict, timeout: float = 20) -> dict:
     """Call Transmission's RPC API, handling its session-id handshake."""
     url = cfg["url"].rstrip("/") + "/transmission/rpc"
     auth = (cfg["username"], cfg["password"]) if cfg.get("username") else None
 
-    async with httpx.AsyncClient(auth=auth, timeout=20) as client:
+    async with httpx.AsyncClient(auth=auth, timeout=timeout) as client:
         resp = await client.post(url, json=body)
         if resp.status_code == 409:  # Transmission requires a session id handshake
             session_id = resp.headers["X-Transmission-Session-Id"]
@@ -61,3 +67,35 @@ async def test_connection(cfg: dict) -> str:
         raise RuntimeError(f"Transmission replied: {data.get('result')}")
     version = data["arguments"].get("version", "unknown version")
     return f"OK: Transmission {version} responded"
+
+
+async def list_torrents(cfg: dict, timeout: float = 20) -> list[dict]:
+    """Return Transmission's torrents with the fields the Downloads page needs."""
+    fields = ["id", "name", "percentDone", "rateDownload", "status", "totalSize"]
+    data = await _rpc(cfg, {"method": "torrent-get", "arguments": {"fields": fields}}, timeout=timeout)
+    if data.get("result") != "success":
+        raise RuntimeError(f"Transmission replied: {data.get('result')}")
+    torrents = []
+    for t in data["arguments"]["torrents"]:
+        pct = t.get("percentDone", 0)
+        torrents.append({
+            "id": t["id"],
+            "name": t["name"],
+            "pct": round(pct * 100, 1),
+            "done": pct >= 1,
+            "status": STATUS_NAMES.get(t.get("status"), "Unknown"),
+            "rate": t.get("rateDownload", 0),
+        })
+    # Unfinished first, then finished, so the ones you need to act on are at the top.
+    torrents.sort(key=lambda t: (t["done"], t["name"].lower()))
+    return torrents
+
+
+async def remove_torrent(cfg: dict, torrent_id: int) -> None:
+    """Remove a torrent from Transmission. Files on disk are kept (delete-local-data is false)."""
+    data = await _rpc(cfg, {
+        "method": "torrent-remove",
+        "arguments": {"ids": [torrent_id], "delete-local-data": False},
+    })
+    if data.get("result") != "success":
+        raise RuntimeError(f"Transmission replied: {data.get('result')}")
