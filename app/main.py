@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -188,6 +188,19 @@ async def index(request: Request, user: dict = Depends(require_user), q: str = "
         "q": q, "kind": kind, "results": results, "errors": errors, "msg": msg,
         "finished": await _finished_downloads(user),
     })
+
+
+@app.get("/details/{key}")
+async def torrent_details(request: Request, key: str, user: dict = Depends(require_user)):
+    """File list for one search result, loaded when its tile is opened. Only keys from a search are accepted."""
+    if search.link_for(key) is None:
+        raise HTTPException(status_code=404, detail="Search again to see this result.")
+    error, info = "", {"files": [], "total": 0, "types": "", "note": ""}
+    try:
+        info = await search.file_list(key)
+    except Exception as exc:
+        error = f"Could not read the file list: {exc}"
+    return _render(request, "files.html", user, info=info, error=error)
 
 
 @app.post("/download")

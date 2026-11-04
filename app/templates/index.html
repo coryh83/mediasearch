@@ -19,6 +19,22 @@
   .filters { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1.25rem 0 0; }
   .chip { padding: .4rem .9rem; border-radius: 999px; border: 1px solid var(--line); color: var(--text); text-decoration: none; }
   .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  /* Tiles open in place. An open tile spans the full row so the extra details have room. */
+  .card[data-key] { cursor: pointer; }
+  .card.open { grid-column: 1 / -1; cursor: default; }
+  .card.open .title { display: block; -webkit-line-clamp: unset; }
+  .more[hidden] { display: none; }
+  .more { display: flex; flex-direction: column; gap: .6rem; margin-top: .4rem; }
+  .more p { margin: 0; }
+  .desc { color: var(--muted); font-size: .9rem; line-height: 1.45; }
+  dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: .25rem .9rem; margin: 0; font-size: .9rem; }
+  dl.facts dt { color: var(--muted); }
+  dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+  .files { font-size: .9rem; }
+  .filelist { max-height: 280px; overflow: auto; margin: .3rem 0 0; padding: .5rem .5rem .5rem 1.6rem;
+              background: var(--bg); border-radius: 10px; color: var(--text); }
+  .filelist li { overflow-wrap: anywhere; margin: .15rem 0; }
+  .filelist span { color: var(--muted); white-space: nowrap; }
 </style>
 {% endblock %}
 {% block bodyclass %}search-page{% endblock %}
@@ -47,9 +63,22 @@
 <p style="color:var(--muted); margin: 1rem 0 .75rem">{{ results|length }} results</p>
 <div class="grid">
   {% for r in results %}
-  <div class="card">
+  <div class="card" data-key="{{ r.key }}" tabindex="0">
     <div class="title" title="{{ r.title }}">{{ r.title }}</div>
     <div class="meta">{{ r.size_human }} · {{ r.seeders }} seeds · {{ r.indexer }}</div>
+    <div class="more" hidden>
+      <dl class="facts">
+        {% if r.author %}<dt>Author</dt><dd>{{ r.author }}</dd>{% endif %}
+        {% if r.quality %}<dt>Audio</dt><dd>{{ r.quality }}</dd>{% endif %}
+        {% if r.formats %}<dt>Format</dt><dd>{{ r.formats|join(', ') }}</dd>{% endif %}
+        <dt>Size</dt><dd>{{ r.size_human }}</dd>
+        <dt>Seeds</dt><dd>{{ r.seeders }}</dd>
+        {% for label, value in r.info %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+        <dt>Indexer</dt><dd>{{ r.indexer }}</dd>
+      </dl>
+      {% if r.description %}<p class="desc">{{ r.description }}</p>{% endif %}
+      <div class="files" data-url="/details/{{ r.key }}"><p class="meta">Loading file list…</p></div>
+    </div>
     <form method="post" action="/download">
       <input type="hidden" name="q" value="{{ q }}">
       <input type="hidden" name="link" value="{{ r.link }}">
@@ -59,6 +88,42 @@
   </div>
   {% endfor %}
 </div>
+<script>
+  // Click a tile to open it. Click its title or size line to close it again.
+  // Clicks on the Download button and links never open or close a tile.
+  async function loadFiles(card) {
+    const box = card.querySelector('.files');
+    if (box.dataset.loaded) return;
+    box.dataset.loaded = '1';
+    try {
+      const resp = await fetch(box.dataset.url, { credentials: 'same-origin' });
+      if (!resp.ok || resp.redirected) throw new Error('bad response');
+      box.innerHTML = await resp.text();
+    } catch (err) {
+      box.innerHTML = '<p class="err">Could not load the file list. Try again.</p>';
+      box.dataset.loaded = '';
+    }
+  }
+  function setOpen(card, open) {
+    card.classList.toggle('open', open);
+    card.querySelector('.more').hidden = !open;
+    if (open) loadFiles(card);
+  }
+  document.querySelectorAll('.card[data-key]').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('form, a, button')) return;
+      if (!card.classList.contains('open')) return setOpen(card, true);
+      if (e.target.closest('.title, .meta')) setOpen(card, false);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.target !== card) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setOpen(card, !card.classList.contains('open'));
+      }
+    });
+  });
+</script>
 {% elif q %}
 <p style="color:var(--muted); text-align:center; margin-top:2rem">No results.</p>
 {% endif %}

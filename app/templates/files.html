@@ -1,0 +1,9 @@
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+{% if info.note %}<p class="meta">{{ info.note }}</p>{% endif %}
+{% if info.files %}
+<p class="meta"><strong>Files ({{ info.total }})</strong>{% if info.types %} · {{ info.types }}{% endif %}</p>
+<ul class="filelist">
+  {% for f in info.files %}<li>{{ f.path }} <span>{{ f.size }}</span></li>{% endfor %}
+</ul>
+{% if info.total > info.files|length %}<p class="meta">…and {{ info.total - info.files|length }} more</p>{% endif %}
+{% endif %}
