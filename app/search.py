@@ -107,6 +107,7 @@ def parse_torznab(indexer_name: str, xml_bytes: bytes) -> list[dict]:
 
         results.append({
             "key": remember(link),
+            "link": link,
             "title": title,
             "size": size,
             "size_human": human_size(size),
