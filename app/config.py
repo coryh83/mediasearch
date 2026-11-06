@@ -10,8 +10,9 @@ def default_config() -> dict:
     return {
         "indexers": [],  # [{"name": "...", "url": "http://jackett:9117/api/v2.0/indexers/x/results/torznab/?apikey=..."}]
         "transmission": {"url": "http://transmission:9091", "username": "", "password": ""},
-        # Folder paths as seen from INSIDE this app's container (see the volume mounts in docker-compose.yml).
-        "folders": {"complete": "/media/downloads/complete", "audiobooks": "/media/audiobooks", "ebooks": "/media/ebooks"},
+        # Folder path as seen from INSIDE this app's container (see the volume mounts in docker-compose.yml).
+        # Finished books are saved here, flat, for Calibre to pick up.
+        "folders": {"complete": "/media/downloads/complete"},
     }
 
 

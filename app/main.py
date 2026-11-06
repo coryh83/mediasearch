@@ -47,12 +47,8 @@ def _merged_transmission(current: dict, url: str, username: str, password: str) 
     }
 
 
-def _folders(complete: str, audiobooks: str, ebooks: str) -> dict:
-    return {
-        "complete": complete.strip(),
-        "audiobooks": audiobooks.strip(),
-        "ebooks": ebooks.strip(),
-    }
+def _folders(complete: str) -> dict:
+    return {"complete": complete.strip()}
 
 
 def _render_config(request: Request, user: dict, tx: dict, folders: dict, rows: list[dict],
@@ -225,32 +221,20 @@ async def downloads_page(request: Request, user: dict = Depends(require_user), m
         torrents = [t for t in await transmission.list_torrents(cfg["transmission"]) if _visible(user, t)]
     except Exception as exc:
         error = f"Could not reach Transmission: {exc}"
-    for t in torrents:
-        t["guess"] = library.guess_author(t["name"])
-        t["split"] = library.preview_split(cfg["folders"]["complete"], t["name"]) if t["done"] else []
-    authors = sorted(
-        set(library.list_authors(cfg["folders"]["audiobooks"])) | set(library.list_authors(cfg["folders"]["ebooks"])),
-        key=str.lower,
-    )
     return _render(request, "downloads.html", user, **{
         "torrents": torrents, "error": error, "msg": msg, "msg_ok": ok != "0",
-        "folders": cfg["folders"], "authors": authors,
+        "folders": cfg["folders"],
     })
 
 
-@app.post("/downloads/move")
-async def move_download(
+@app.post("/downloads/save")
+async def save_download(
     user: dict = Depends(require_user),
     torrent_id: int = Form(..., alias="id"),
-    target: str = Form(...),
-    author: str = Form(""),
 ):
     cfg = config.load()
+    complete = cfg["folders"]["complete"]
     try:
-        if target not in ("audiobooks", "ebooks"):
-            raise ValueError("unknown destination")
-        if not author.strip():
-            raise ValueError("enter the author's name first")
         torrents = await transmission.list_torrents(cfg["transmission"])
         torrent = next((t for t in torrents if t["id"] == torrent_id), None)
         if torrent is None:
@@ -259,25 +243,18 @@ async def move_download(
             raise RuntimeError("that download was started by another user")
         if not torrent["done"]:
             raise RuntimeError("that download has not finished yet")
-        if library.is_collection(cfg["folders"]["complete"], torrent["name"]):
-            moved = library.move_collection(
-                cfg["folders"]["complete"], torrent["name"], cfg["folders"][target], author,
-            )
-            where = f"{len(moved)} books in {author.strip()}"
-        else:
-            dst = library.move_to_library(
-                cfg["folders"]["complete"], torrent["name"], cfg["folders"][target], author,
-            )
-            where = str(dst)
+        moved = library.save_to_complete(complete, torrent["name"])
+        where = f"{len(moved)} book file{'s' if len(moved) != 1 else ''} in {complete}"
     except Exception as exc:
         return RedirectResponse(f"/downloads?msg={quote('Failed: ' + str(exc))}&ok=0", status_code=303)
 
-    # Files are moved. Now drop the torrent from Transmission so it stops seeding the old path.
+    # Files are saved. Drop the torrent from Transmission so it stops seeding from the old path.
+    # Its files stay on disk (delete-local-data is off).
     try:
         await transmission.remove_torrent(cfg["transmission"], torrent_id)
-        msg, ok = f"Moved to {where}", "1"
+        msg, ok = f"Saved {where}", "1"
     except Exception as exc:
-        msg, ok = f"Moved to {where}, but could not remove it from Transmission: {exc}", "0"
+        msg, ok = f"Saved {where}, but could not remove it from Transmission: {exc}", "0"
     return RedirectResponse(f"/downloads?msg={quote(msg)}&ok={ok}", status_code=303)
 
 
@@ -312,8 +289,6 @@ async def save_config(
     transmission_username: str = Form(""),
     transmission_password: str = Form(""),
     complete_dir: str = Form(""),
-    audiobook_dir: str = Form(""),
-    ebook_dir: str = Form(""),
     names: list[str] = Form([]),
     urls: list[str] = Form([]),
 ):
@@ -326,7 +301,7 @@ async def save_config(
     config.save({
         "indexers": indexers,
         "transmission": _merged_transmission(current, transmission_url, transmission_username, transmission_password),
-        "folders": _folders(complete_dir, audiobook_dir, ebook_dir),
+        "folders": _folders(complete_dir),
     })
     return RedirectResponse("/config?saved=1", status_code=303)
 
@@ -340,15 +315,13 @@ async def test_connection(
     transmission_username: str = Form(""),
     transmission_password: str = Form(""),
     complete_dir: str = Form(""),
-    audiobook_dir: str = Form(""),
-    ebook_dir: str = Form(""),
     names: list[str] = Form([]),
     urls: list[str] = Form([]),
 ):
     # Tests what is on the form right now, without saving anything.
     current = config.load()
     tx = _merged_transmission(current, transmission_url, transmission_username, transmission_password)
-    folders = _folders(complete_dir, audiobook_dir, ebook_dir)
+    folders = _folders(complete_dir)
     rows = [{"name": n, "url": u} for n, u in zip(names, urls)]
     try:
         if test_row == "transmission":

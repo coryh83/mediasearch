@@ -7,10 +7,6 @@
 {% if error %}<p class="err">{{ error }}</p>{% endif %}
 {% if not torrents and not error %}<p style="color:var(--muted)">Nothing downloading.</p>{% endif %}
 
-<datalist id="authors">
-  {% for a in authors %}<option value="{{ a }}">{% endfor %}
-</datalist>
-
 {% for t in torrents %}
 <div class="dl">
   <div class="dl-name">{{ t.name }}</div>
@@ -18,20 +14,11 @@
   <div class="meta">
     {% if t.done %}Finished{% else %}{{ t.status }} · {{ t.pct }}%{% if t.rate %} · {{ (t.rate / 1048576) | round(2) }} MB/s{% endif %}{% endif %}
   </div>
-  {% if t.done and t.split %}
-  <div class="meta">Collection: will be split into {{ t.split|length }} book{{ 's' if t.split|length != 1 }} under the author:
-    {% for b in t.split %}<div>· {{ b.title }}{% if b.files > 1 %} ({{ b.files }} files){% endif %}</div>{% endfor %}
-  </div>
-  {% endif %}
   {% if t.done %}
-  <form method="post" action="/downloads/move" class="move">
+  <form method="post" action="/downloads/save">
     <input type="hidden" name="id" value="{{ t.id }}">
-    <label class="meta">Author
-      <input type="text" name="author" list="authors" value="{{ t.guess }}" placeholder="Author name" required>
-    </label>
     <div class="actions">
-      <button type="submit" name="target" value="audiobooks">Move to Audiobooks</button>
-      <button type="submit" name="target" value="ebooks">Move to Ebooks</button>
+      <button type="submit">Save to complete folder</button>
     </div>
   </form>
   <form method="post" action="/downloads/remove">
@@ -48,9 +35,6 @@
   .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
   .bar > div { height: 100%; background: var(--accent); }
   .meta { color: var(--muted); font-size: .85rem; }
-  .move { display: flex; flex-direction: column; gap: 8px; margin: 0; }
-  .move label { display: flex; flex-direction: column; gap: 4px; }
-  .move input { width: 100%; }
   .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
   form { margin: 0; }
 </style>

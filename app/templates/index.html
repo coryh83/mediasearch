@@ -46,7 +46,7 @@
 </form>
 
 {% if finished %}
-<p class="msg">{{ finished|length }} download{{ 's' if finished|length != 1 }} finished. <a href="/downloads" style="color:inherit; font-weight:600">Choose where to put {{ 'them' if finished|length != 1 else 'it' }}</a></p>
+<p class="msg">{{ finished|length }} download{{ 's' if finished|length != 1 }} finished. <a href="/downloads" style="color:inherit; font-weight:600">Save {{ 'them' if finished|length != 1 else 'it' }} to the complete folder</a></p>
 {% endif %}
 {% if msg %}<p class="{{ 'err' if msg.startswith('Failed') else 'msg' }}">{{ msg }}</p>{% endif %}
 {% for e in errors %}<p class="err">{{ e }}</p>{% endfor %}
